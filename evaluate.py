@@ -24,7 +24,6 @@ def main(arg):
     cudnn.benchmark = True
     print("===> Building model")
     model = RCAN(arg)
-    model = nn.DataParallel(model, device_ids=[0])
     model = model.cuda()
 
     # if arg.resume:
@@ -64,51 +63,6 @@ def main(arg):
             output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))
             output = output.round()
             cv2.imwrite('results/{0}/{1}'.format(path, image_name), output)
-
-    # print("===> Setting GPU")
-    # model = nn.DataParallel(model, device_ids=device_ids)
-    # model = model.cuda()
-    #
-    # # optionally resume from a checkpoint
-    # if arg.resume:
-    #     if os.path.isfile(args.resume):
-    #         print("=> loading checkpoint '{}'".format(arg.resume))
-    #         checkpoint = torch.load(arg.resume)
-    #         new_state_dict = OrderedDict()
-    #         for k, v in checkpoint.items():
-    #             namekey = 'module.' + k  # remove `module.`
-    #             new_state_dict[namekey] = v
-    #         # load params
-    #         model.load_state_dict(new_state_dict)
-    #     else:
-    #         print("=> no checkpoint found at '{}'".format(args.resume))
-    #
-    # print("===> Testing")
-    # model.eval()
-    # image_eval(model, rtc_lr_list)
-
-
-def image_eval(model, file_list):
-    for image_file in file_list:
-        print(image_file)
-        lr_data = cv2.imread(image_file)
-        lr_data = cv2.cvtColor(lr_data, cv2.COLOR_BGR2RGB)
-        lr_data = np.array(lr_data)
-        lr_data = np.ascontiguousarray(np.transpose(lr_data, (2, 0, 1)))
-        lr_data = np.expand_dims(lr_data, 0)
-        lr_data = torch.from_numpy(lr_data)
-        test_data = lr_data.type(torch.FloatTensor)
-        test_data = test_data.to(torch.device("cuda"))
-        output = model(test_data)
-        output = output.data.float().cpu().squeeze(0).numpy()
-        output = np.transpose(output[[2, 1, 0], :, :], (1, 2, 0))  # HWC, BGR
-        output[output > 255] = 255
-        output[output < 0] = 0
-        output = np.array(output, dtype=np.uint8)
-        image_name = image_file.split('/')[9]
-        image_path = args.AIRTC_HR + image_name.replace('x4', 'original')
-        print(image_path)
-        cv2.imwrite(image_path, output, [int(cv2.IMWRITE_PNG_COMPRESSION), 0])
 
 
 if __name__ == '__main__':
